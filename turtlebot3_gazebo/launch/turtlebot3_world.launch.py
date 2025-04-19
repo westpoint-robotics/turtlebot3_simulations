@@ -21,9 +21,9 @@ import os
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import AppendEnvironmentVariable
-from launch.actions import IncludeLaunchDescription
+from launch.actions import IncludeLaunchDescription, ExecuteProcess
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, FindExecutable
 
 
 def generate_launch_description():
@@ -31,13 +31,14 @@ def generate_launch_description():
     ros_gz_sim = get_package_share_directory('ros_gz_sim')
 
     use_sim_time = LaunchConfiguration('use_sim_time', default='true')
-    x_pose = LaunchConfiguration('x_pose', default='-2.0')
-    y_pose = LaunchConfiguration('y_pose', default='-0.5')
+    x_pose = LaunchConfiguration('x_pose', default='2.9')
+    y_pose = LaunchConfiguration('y_pose', default='-0.76')
+    yaw = LaunchConfiguration('yaw', default='3.14')
 
     world = os.path.join(
         get_package_share_directory('turtlebot3_gazebo'),
         'worlds',
-        'turtlebot3_world.world'
+        'maze_world.world'
     )
 
     gzserver_cmd = IncludeLaunchDescription(
@@ -67,23 +68,48 @@ def generate_launch_description():
         ),
         launch_arguments={
             'x_pose': x_pose,
-            'y_pose': y_pose
+            'y_pose': y_pose,
+            'yaw' : yaw
         }.items()
     )
 
-    set_env_vars_resources = AppendEnvironmentVariable(
+    set_env_vars_models = AppendEnvironmentVariable(
             'GZ_SIM_RESOURCE_PATH',
             os.path.join(
                 get_package_share_directory('turtlebot3_gazebo'),
                 'models'))
+    set_env_vars_worlds = AppendEnvironmentVariable(
+            'GZ_SIM_RESOURCE_PATH',
+            os.path.join(
+                get_package_share_directory('turtlebot3_gazebo'),
+                'worlds'))
+    set_env_vars_urdf = AppendEnvironmentVariable(
+            'GZ_SIM_RESOURCE_PATH',
+            os.path.join(
+                get_package_share_directory('turtlebot3_gazebo'),
+                'urdf'))
+    
+    # Move the Gazebo GUI View Camera to behind the robots location
+    gz_camera_mover = ExecuteProcess(
+        cmd=[[
+            FindExecutable(name='gz'),
+            " service -s /gui/move_to/pose ",
+            " --reqtype gz.msgs.GUICamera --reptype gz.msgs.Boolean --timeout 2000 ",
+            " --req 'pose: {position: {x: 6.8504, y: -1.5527, z: 2.8567} orientation: {x: 0.0, y: 0.0, z: 3.142}}' ",
+        ]],
+        shell=True
+    )
 
     ld = LaunchDescription()
 
     # Add the commands to the launch description
     ld.add_action(gzserver_cmd)
     ld.add_action(gzclient_cmd)
+    ld.add_action(gz_camera_mover)
     ld.add_action(spawn_turtlebot_cmd)
     ld.add_action(robot_state_publisher_cmd)
-    ld.add_action(set_env_vars_resources)
+    ld.add_action(set_env_vars_models)
+    ld.add_action(set_env_vars_worlds)
+    ld.add_action(set_env_vars_urdf)
 
     return ld
