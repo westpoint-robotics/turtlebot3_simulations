@@ -82,11 +82,13 @@
     <!-- Load models -->
     <include>
       <uri>model://empty_1136</uri>
+      <pose>13.4 4.2 0 0 0 3.14</pose>
+      <!-- <pose>-10.5 -5.0 0 0 0 0</pose> -->
     </include>
 
     <include>
       <uri>model://ee484_maze</uri>
-      <pose> 3.0 0 0 0 0 3.14</pose>
+      <pose> 0 -0.79 0 0 0 0</pose>
     </include>    
 
   </world>
